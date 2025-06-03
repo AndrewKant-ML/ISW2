@@ -1,6 +1,4 @@
-import issueManagement.JiraReleasesManager;
-import issueManagement.JiraTicketsManager;
-import issueManagement.model.Release;
+import issueManagement.ticket.JiraTicketsManager;
 import issueManagement.model.TicketFilter;
 import issueManagement.model.TicketStatus;
 import issueManagement.model.TicketType;
@@ -17,10 +15,6 @@ public class Main {
     private static final Double percentage = 0.33;
 
     public static void main(String[] args) {
-        JiraReleasesManager releasesManager = new JiraReleasesManager(projectName);
-        releasesManager.getReleasesInfo();
-        List<Release> releases = releasesManager.getReleases();
-
         JiraTicketsManager ticketManager = new JiraTicketsManager(projectName);
         TicketFilter ticketFilter = new TicketFilter();
         ticketFilter.setTypes(List.of(TicketType.BUG));

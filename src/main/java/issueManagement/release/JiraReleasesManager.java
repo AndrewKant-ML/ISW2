@@ -1,5 +1,6 @@
-package issueManagement;
+package issueManagement.release;
 
+import issueManagement.JSONUtils;
 import issueManagement.model.Release;
 import lombok.Getter;
 import org.json.JSONArray;

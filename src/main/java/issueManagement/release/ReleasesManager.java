@@ -1,4 +1,4 @@
-package issueManagement;
+package issueManagement.release;
 
 public interface ReleasesManager {
 

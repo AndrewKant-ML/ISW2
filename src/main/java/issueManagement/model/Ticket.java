@@ -12,10 +12,16 @@ import java.util.List;
 public class Ticket {
 
     @NonNull
+    private String id;
+
+    @NonNull
     private final String key;
 
     @NonNull
     private final LocalDate issueDate;
+
+    @NonNull
+    private final LocalDate closedDate;
 
     @NonNull
     private TicketType type;
@@ -24,9 +30,11 @@ public class Ticket {
     private TicketStatus status;
 
     @NonNull
-    private List<String> authors;
+    private String assignee;
 
     private ResolutionType resolution;
+
+    private String summary;
 
     private Release injected;
     private Release fixed;
