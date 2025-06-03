@@ -1,33 +1,36 @@
-package jira;
+package issueManagement;
 
+import issueManagement.model.Release;
+import lombok.Getter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.List;
 
-public class ReleasesManager {
+public class JiraReleasesManager implements ReleasesManager {
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    @Getter
     private final String projectName;
+    @Getter
     private final String url;
-    private final HashMap<LocalDateTime, String> releaseNames;
-    private final HashMap<LocalDateTime, String> releaseID;
-    private final ArrayList<LocalDateTime> releases;
+    @Getter
+    private final List<Release> releases;
 
     private final JSONUtils jsonUtils;
 
-    public ReleasesManager(String projectName) {
+    public JiraReleasesManager(String projectName) {
         this.projectName = projectName;
         this.url = "https://issues.apache.org/jira/rest/api/2/project/" + projectName;
         this.releases = new ArrayList<>();
-        this.releaseNames = new HashMap<>();
-        this.releaseID = new HashMap<>();
-
-        jsonUtils = new JSONUtils();
+        this.jsonUtils = new JSONUtils();
     }
 
     /**
@@ -41,7 +44,6 @@ public class ReleasesManager {
      * Retrieves the first percentage-% of the releases for the project. Ignores releases with missing dates
      */
     public void getReleasesInfo(Double percentage) {
-        int i;
         JSONObject json;
         try {
             json = jsonUtils.readJsonFromUrl(url);
@@ -50,49 +52,51 @@ public class ReleasesManager {
             return;
         }
 
+        this.releases.clear();
         // Takes the "versions" field from the JSON
         JSONArray versions = json.getJSONArray("versions");
+        int versionsNumber = versions.length();
+        int versionsToBeConsidered = (int) Math.ceil(versionsNumber * percentage);
         String name, id;
-        for (i = 0; i < versions.length(); i++) {
+        for (int i = 0; i < versionsToBeConsidered; i++) {
             name = id = "";
             if (versions.getJSONObject(i).has("releaseDate")) {
                 if (versions.getJSONObject(i).has("name")) name = versions.getJSONObject(i).get("name").toString();
                 if (versions.getJSONObject(i).has("id")) id = versions.getJSONObject(i).get("id").toString();
-                addRelease(versions.getJSONObject(i).get("releaseDate").toString(), name, id);
+                releases.add(new Release(id, name, LocalDate.parse(versions.getJSONObject(i).getString("releaseDate"))));
             } else {
                 System.err.println("Version " + versions.getJSONObject(i).getString("name") + " has no release date");
             }
         }
 
         // Order releases by date
-        releases.sort(LocalDateTime::compareTo);
+        releases.sort(Comparator.comparing(Release::getReleaseDate));
+    }
+
+    /**
+     * Writes release info to a CSV file named "ProjectNameVersionInfo.csv"
+     */
+    public void outputReleaseInfo() {
         // Name of CSV for output
         String outFileName = projectName + "VersionInfo.csv";
         try (FileWriter fileWriter = new FileWriter(outFileName)) {
             // Set CSV header
-            fileWriter.append("Index,Version ID,Version Name,Date\n");
+            fileWriter.append("Index,Version ID,Version Name,Date");
             // Writes the CSV content using the first percentage-% of the releases
-            int numVersions = releases.size();
-            for (i = 0; i < Math.ceil(numVersions * percentage); i++) {
+            Release release;
+            for (int i = 0; i < releases.size(); i++) {
+                fileWriter.append("\n");
+                release = releases.get(i);
                 fileWriter.append(String.valueOf(i + 1));
                 fileWriter.append(",");
-                fileWriter.append(releaseID.get(releases.get(i)));
+                fileWriter.append(release.getId());
                 fileWriter.append(",");
-                fileWriter.append(releaseNames.get(releases.get(i)));
+                fileWriter.append(release.getName());
                 fileWriter.append(",");
-                fileWriter.append(releases.get(i).toString());
-                fileWriter.append("\n");
+                fileWriter.append(release.getReleaseDate().format(DATE_FORMATTER));
             }
         } catch (Exception e) {
             System.err.println("Error while writing on CSV: " + e.getMessage());
         }
-    }
-
-    private void addRelease(String strDate, String name, String id) {
-        LocalDate date = LocalDate.parse(strDate);
-        LocalDateTime dateTime = date.atStartOfDay();
-        if (!releases.contains(dateTime)) releases.add(dateTime);
-        releaseNames.put(dateTime, name);
-        releaseID.put(dateTime, id);
     }
 }

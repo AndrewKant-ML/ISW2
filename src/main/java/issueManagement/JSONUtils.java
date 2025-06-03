@@ -1,4 +1,4 @@
-package jira;
+package issueManagement;
 
 import org.json.JSONArray;
 import org.json.JSONException;
