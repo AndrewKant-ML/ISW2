@@ -15,10 +15,10 @@ public class Main {
     private static final Double percentage = 0.33;
 
     public static void main(String[] args) {
-        JiraTicketsManager ticketManager = new JiraTicketsManager(projectName);
-        TicketFilter ticketFilter = new TicketFilter();
-        ticketFilter.setTypes(List.of(TicketType.BUG));
-        ticketFilter.setStatuses(Arrays.asList(TicketStatus.CLOSED, TicketStatus.RESOLVED));
-        ticketManager.retrieveTicketsIDs(ticketFilter);
+//        JiraTicketsManager ticketManager = new JiraTicketsManager(projectName);
+//        TicketFilter ticketFilter = new TicketFilter();
+//        ticketFilter.setTypes(List.of(TicketType.BUG));
+//        ticketFilter.setStatuses(Arrays.asList(TicketStatus.CLOSED, TicketStatus.RESOLVED));
+//        ticketManager.retrieveTicketsIDs(ticketFilter);
     }
 }

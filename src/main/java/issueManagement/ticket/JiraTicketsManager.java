@@ -3,6 +3,7 @@ package issueManagement.ticket;
 import issueManagement.JSONUtils;
 import issueManagement.model.*;
 import issueManagement.release.JiraReleasesManager;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -21,11 +22,13 @@ public class JiraTicketsManager implements TicketsManager {
 
     private static final String BASE_URL = "https://issues.apache.org/jira/rest/api/2/search";
     private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd'T'HH:mm:ss.SSS").appendOffset("+HHMM", "Z").toFormatter();
+    private static final int PAGE_SIZE = 100;
 
     private final String projectName;
     private final JSONUtils jsonUtils;
     private final JiraReleasesManager releasesManager;
 
+    @Getter
     private final List<Ticket> tickets;
     private final List<Ticket> ticketsWithNoFixVersion;
 
@@ -40,20 +43,16 @@ public class JiraTicketsManager implements TicketsManager {
     /**
      * Retrieves all tickets corresponding to the filter
      *
-     * @param ticketFilter the tickets filter
+     * @param ticketFilter the ticket's filter
      */
     public void retrieveTicketsIDs(TicketFilter ticketFilter) {
-        // Retrieves the releases for the project
-        releasesManager.getReleasesInfo(0.33);
-        List<Release> releases = releasesManager.getReleases();
-
         int i = 0, j, total = 1;
         String baseUrl = buildUrlFromFilter(ticketFilter);
         String url;
         // Get JSON API for closed bugs w/ AV in the project
         do {
             //Only gets a max of 100 at a time, so must do this multiple times if bugs > 100
-            url = String.format(baseUrl, i, 100);
+            url = String.format(baseUrl, i, PAGE_SIZE);
             JSONObject json;
             try {
                 json = jsonUtils.readJsonFromUrl(url);
@@ -68,18 +67,18 @@ public class JiraTicketsManager implements TicketsManager {
             // Set the total number of issues found
             if (json.getInt("total") != total) {
                 total = json.getInt("total");
-                log.info("Total number of issues: {}",total);
+                log.info("Total number of issues: {}", total);
             }
 
             // For each retrieved issue, adds a ticket to the list
-            for (j=0; j < issues.length(); j++) {
+            for (j = 0; j < issues.length(); j++) {
                 // Iterate through each bug
-                JSONObject ticketJson = issues.getJSONObject(j % 100);
+                JSONObject ticketJson = issues.getJSONObject(j);
                 if (ticketJson.getJSONObject("fields").getJSONArray("fixVersions") == null || ticketJson.getJSONObject("fields").getJSONArray("fixVersions").isEmpty()) {
                     ticketsWithNoFixVersion.add(getTicketFromJson(ticketJson));
                 } else tickets.add(getTicketFromJson(ticketJson));
             }
-            i+=j;
+            i += j;
         } while (i < total);
 
         log.info("Number of valid tickets found: {}", tickets.size());
@@ -103,10 +102,9 @@ public class JiraTicketsManager implements TicketsManager {
         LocalDate closedDate;
         if (fields.get("resolutiondate") != null && !fields.get("resolutiondate").toString().equals("null"))
             closedDate = LocalDateTime.parse(fields.getString("resolutiondate"), formatter).toLocalDate();
-        else
-            closedDate = LocalDateTime.parse(fields.getString("updated"), formatter).toLocalDate();
-        TicketType issueType = TicketType.valueOf(fields.getJSONObject("issuetype").getString("name").toUpperCase(Locale.ROOT));
-        TicketStatus status = TicketStatus.valueOf(fields.getJSONObject("status").getString("name").toUpperCase(Locale.ROOT));
+        else closedDate = LocalDateTime.parse(fields.getString("updated"), formatter).toLocalDate();
+        TicketType issueType = TicketType.from(fields.getJSONObject("issuetype").getString("name"));
+        TicketStatus status = TicketStatus.fromString(fields.getJSONObject("status").getString("name"));
         String assignee = "";
         if (fields.get("assignee") != null && !fields.get("assignee").toString().equals("null"))
             assignee = fields.getJSONObject("assignee").getString("name");
@@ -116,6 +114,16 @@ public class JiraTicketsManager implements TicketsManager {
         Ticket ticket = new Ticket(ticketJson.getString("id"), ticketJson.getString("key"), issuedDate, closedDate, issueType, status, assignee);
         ticket.setResolution(resolutionType);
         return ticket;
+    }
+
+    private Release getFixVersionFromTicketJson(JSONObject ticketJson) {
+        // Retrieves the releases for the project
+        releasesManager.getReleasesInfo(0.33);
+        List<Release> releases = releasesManager.getReleases();
+
+        Release fixVersion = null;
+
+        return fixVersion;
     }
 
     /**
