@@ -26,11 +26,13 @@ public class JiraTicketsManager implements TicketsManager {
 
     private final String projectName;
     private final JSONUtils jsonUtils;
-    private final JiraReleasesManager releasesManager;
+
 
     @Getter
     private final List<Ticket> tickets;
     private final List<Ticket> ticketsWithNoFixVersion;
+    @Getter
+    private final JiraReleasesManager releasesManager;
 
     public JiraTicketsManager(String projectName) {
         this.projectName = projectName;
@@ -113,18 +115,42 @@ public class JiraTicketsManager implements TicketsManager {
             resolutionType = ResolutionType.fromResolution(fields.getJSONObject("resolution").getString("name"));
         Ticket ticket = new Ticket(ticketJson.getString("id"), ticketJson.getString("key"), issuedDate, closedDate, issueType, status, assignee);
         ticket.setResolution(resolutionType);
+        Release fixVersion = getFixVersionFromTicketJson(ticketJson);
+        ticket.setFixed(fixVersion);
         return ticket;
     }
 
     private Release getFixVersionFromTicketJson(JSONObject ticketJson) {
-        // Retrieves the releases for the project
+        JSONArray fixVersionsArray = ticketJson.getJSONObject("fields").getJSONArray("fixVersions");
+
+        if (fixVersionsArray == null || fixVersionsArray.isEmpty()) {
+            return null;
+        }
+
+        // Recupera la lista delle Release (NB: chiama releasesManager solo se necessario)
         releasesManager.getReleasesInfo(0.33);
         List<Release> releases = releasesManager.getReleases();
 
-        Release fixVersion = null;
+        // Cerco la prima fixVersion valorizzata che corrisponde a una Release
+        for (int i = 0; i < fixVersionsArray.length(); i++) {
+            JSONObject fixVersionObj = fixVersionsArray.getJSONObject(i);
 
-        return fixVersion;
+            // A volte name è vuoto o null
+            if (fixVersionObj.has("name") && !fixVersionObj.isNull("name")) {
+                String fixVersionName = fixVersionObj.getString("name");
+
+                for (Release release : releases) {
+                    if (release.getName().equals(fixVersionName)) {
+                        return release;
+                    }
+                }
+            }
+        }
+
+        // Se nessuna corrisponde, torna null
+        return null;
     }
+
 
     /**
      * Builds a URL to query the Jira REST API according to some filters
@@ -136,10 +162,10 @@ public class JiraTicketsManager implements TicketsManager {
         StringBuilder url = new StringBuilder(BASE_URL + "?jql=project=\"" + projectName + "\"");
 
         if (ticketFilter.getStatuses() != null && !ticketFilter.getStatuses().isEmpty()) {
-            url.append("AND(");
+            url.append(" AND (");
             boolean first = true;
             for (TicketStatus status : ticketFilter.getStatuses()) {
-                if (!first) url.append("OR");
+                if (!first) url.append(" OR ");
                 url.append("\"status\"=\"").append(status.getStatus()).append("\"");
                 first = false;
             }
@@ -147,28 +173,22 @@ public class JiraTicketsManager implements TicketsManager {
         }
 
         if (ticketFilter.getTypes() != null && !ticketFilter.getTypes().isEmpty()) {
-            url.append("AND(");
+            url.append(" AND (");
             boolean first = true;
             for (TicketType type : ticketFilter.getTypes()) {
-                if (!first) url.append("OR");
+                if (!first) url.append(" OR ");
                 url.append("\"issueType\"=\"").append(type).append("\"");
                 first = false;
             }
             url.append(")");
         }
 
-        if (ticketFilter.getFields() != null && !ticketFilter.getFields().isEmpty()) {
-            url.append("&\"fields=");
-            StringBuilder fields = new StringBuilder();
-            for (String field : ticketFilter.getFields()) {
-                fields.append(field).append(",");
-            }
-            fields.deleteCharAt(fields.length() - 1);
-            url.append(fields);
-        }
+        // ⚠️ Fissa sempre questi campi fondamentali per l'analisi
+        url.append("&fields=fixVersions,created,resolutiondate,updated,issuetype,status,assignee,resolution");
 
         url.append("&startAt=%d&maxResults=%d");
 
         return url.toString();
     }
+
 }

@@ -24,14 +24,15 @@ public class CommitTicketExample {
     public static void main(String[] args) {
         extracted();
 
-        //f();
+        f();
     }
 
     private static void extracted() {
         try {
             // Define the project and repository path
             String projectName = "BOOKKEEPER";  // Example: Apache HBase project
-            String repoPath = "/home/cantarell/IdeaProjects/bookkeeper";
+            String repoPath = "/Users/iacov/Documents/ISW2_Metrics_Proj_backup/workspace/projects/bookkeeper";
+
 
             // Initialize the Git commit manager
             GitCommitManager gitManager = new GitCommitManager(repoPath, projectName);
