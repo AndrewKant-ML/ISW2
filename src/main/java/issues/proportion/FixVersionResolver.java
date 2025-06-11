@@ -1,6 +1,6 @@
-package issueManagement.proportion;
+package issues.proportion;
 
-import vcsManagement.model.CommitInfo;
+import vcs.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.List;

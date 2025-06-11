@@ -1,8 +1,9 @@
-package vcsManagement.model;
+package vcs.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import vcsManagement.commit.GitCommitManager;
+import vcs.commit.GitCommitManager;
+
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

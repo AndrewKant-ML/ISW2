@@ -1,8 +1,8 @@
-package issueManagement.proportion;
+package issues.proportion;
 
-import issueManagement.model.Release;
-import issueManagement.model.Ticket;
-import vcsManagement.model.CommitInfo;
+import issues.model.Release;
+import issues.model.Ticket;
+import vcs.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.*;

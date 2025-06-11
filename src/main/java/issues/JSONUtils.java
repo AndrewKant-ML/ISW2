@@ -1,4 +1,4 @@
-package issueManagement;
+package issues;
 
 import org.json.JSONArray;
 import org.json.JSONException;

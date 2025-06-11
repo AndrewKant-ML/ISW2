@@ -1,4 +1,4 @@
-package issueManagement.model;
+package issues.model;
 
 import lombok.Data;
 import lombok.NonNull;
@@ -18,5 +18,8 @@ public class Release {
 
     @NonNull
     private LocalDate releaseDate;
+
+    @NonNull
+    private Boolean released;
 
 }

@@ -1,12 +1,13 @@
-package issueManagement.ticket;
+package issues.ticket;
 
-import issueManagement.JSONUtils;
-import issueManagement.model.*;
-import issueManagement.release.JiraReleasesManager;
+import issues.JSONUtils;
+import issues.model.*;
+import issues.release.JiraReleasesManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import properties.PropertiesManager;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -15,31 +16,42 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 @Slf4j
-public class JiraTicketsManager implements TicketsManager {
+public class JiraTicketsManager{
 
-    private static final String BASE_URL = "https://issues.apache.org/jira/rest/api/2/";
     private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd'T'HH:mm:ss.SSS").appendOffset("+HHMM", "Z").toFormatter();
     private static final int PAGE_SIZE = 100;
 
     private final String projectName;
+    private final String baseUrl;
     private final JSONUtils jsonUtils;
-
 
     @Getter
     private final List<Ticket> tickets;
-    private final List<Ticket> ticketsWithNoFixVersion;
+    private final List<Ticket> ticketsWithNoFixRelease;
     @Getter
-    private final JiraReleasesManager releasesManager;
+    private final JiraReleasesManager ReleasesManager;
 
-    public JiraTicketsManager(String projectName) {
-        this.projectName = projectName;
+    public JiraTicketsManager() {
+        this.projectName = PropertiesManager.getInstance().getProperty("project.name");
+        this.baseUrl = PropertiesManager.getInstance().getProperty("project.jira.baseUrl");
         this.jsonUtils = new JSONUtils();
-        this.releasesManager = new JiraReleasesManager(projectName);
+
+        this.ReleasesManager = new JiraReleasesManager();
+        ReleasesManager.getReleasesInfo();
+
         this.tickets = new ArrayList<>();
-        this.ticketsWithNoFixVersion = new ArrayList<>();
+        this.ticketsWithNoFixRelease = new ArrayList<>();
+    }
+
+    public void clear() {
+        this.tickets.clear();
+        this.ticketsWithNoFixRelease.clear();
+    }
+
+    public void retrieveTickets() {
+        this.retrieveTickets(new TicketFilter());
     }
 
     /**
@@ -47,7 +59,7 @@ public class JiraTicketsManager implements TicketsManager {
      *
      * @param ticketFilter the ticket's filter
      */
-    public void retrieveTicketsIDs(TicketFilter ticketFilter) {
+    public void retrieveTickets(TicketFilter ticketFilter) {
         int i = 0, j, total = 1;
         String baseUrl = buildUrlFromFilter(ticketFilter);
         String url;
@@ -74,21 +86,32 @@ public class JiraTicketsManager implements TicketsManager {
 
             // For each retrieved issue, adds a ticket to the list
             for (j = 0; j < issues.length(); j++) {
-                // Iterate through each bug
+                // Iterate through each ticket
                 JSONObject ticketJson = issues.getJSONObject(j);
-                if (ticketJson.getJSONObject("fields").getJSONArray("fixVersions") == null || ticketJson.getJSONObject("fields").getJSONArray("fixVersions").isEmpty()) {
-                    ticketsWithNoFixVersion.add(getTicketFromJson(ticketJson));
-                } else tickets.add(getTicketFromJson(ticketJson));
+                tickets.add(getTicketFromJson(ticketJson));
             }
             i += j;
         } while (i < total);
 
         log.info("Number of valid tickets found: {}", tickets.size());
-        if (!ticketsWithNoFixVersion.isEmpty()) {
-            // Output tickets with no fix version
-            log.warn("Warning: the following {} tickets were found with no fix versions", ticketsWithNoFixVersion.size());
-            for (Ticket ticket : ticketsWithNoFixVersion)
+        if (!ticketsWithNoFixRelease.isEmpty()) {
+            // Output tickets with no fix Release
+            log.warn("Warning: the following {} tickets were found with no fix Releases", ticketsWithNoFixRelease.size());
+            for (Ticket ticket : ticketsWithNoFixRelease)
                 log.warn(ticket.getKey());
+        }
+    }
+
+    public void setFixReleaseToTickets() {
+        List<Release> availableReleases = ReleasesManager.getReleases();
+
+        for (Ticket ticket : ticketsWithNoFixRelease) {
+            if (ticket.getAssociatedCommits()!=null && !ticket.getAssociatedCommits().isEmpty()) {
+                ticket.getAssociatedCommits().sort((c1, c2) -> c2.getCommitDate().compareTo(c1.getCommitDate()));
+                LocalDate lastCommitDate = ticket.getAssociatedCommits().get(ticket.getAssociatedCommits().size()-1).getCommitDate();
+                availableReleases.stream().filter(v -> v.getReleaseDate().isAfter(lastCommitDate)).findFirst().ifPresent(ticket::setFixed);
+            } else
+                log.warn("Ticket {} has no associated commits", ticket.getKey());
         }
     }
 
@@ -115,40 +138,41 @@ public class JiraTicketsManager implements TicketsManager {
             resolutionType = ResolutionType.fromResolution(fields.getJSONObject("resolution").getString("name"));
         Ticket ticket = new Ticket(ticketJson.getString("id"), ticketJson.getString("key"), issuedDate, closedDate, issueType, status, assignee);
         ticket.setResolution(resolutionType);
-        Release fixVersion = getFixVersionFromTicketJson(ticketJson);
-        ticket.setFixed(fixVersion);
+
+        Release fixRelease = getFixReleaseFromTicketJson(ticketJson);
+        ticket.setFixed(fixRelease);
+        if (fixRelease == null)
+            ticketsWithNoFixRelease.add(ticket);
+
         return ticket;
     }
 
-    private Release getFixVersionFromTicketJson(JSONObject ticketJson) {
-        JSONArray fixVersionsArray = ticketJson.getJSONObject("fields").getJSONArray("fixVersions");
+    private Release getFixReleaseFromTicketJson(JSONObject ticketJson) {
+        JSONArray fixReleasesArray = ticketJson.getJSONObject("fields").getJSONArray("fixReleases");
 
-        if (fixVersionsArray == null || fixVersionsArray.isEmpty()) {
+        if (fixReleasesArray == null || fixReleasesArray.isEmpty()) {
             return null;
         }
 
-        // Recupera la lista delle Release (NB: chiama releasesManager solo se necessario)
-        releasesManager.getReleasesInfo(0.33);
-        List<Release> releases = releasesManager.getReleases();
+        List<Release> Releases = ReleasesManager.getReleases();
+        List<Release> ticketFixReleases = null;
+        Release fixRelease = null;
 
-        // Cerco la prima fixVersion valorizzata che corrisponde a una Release
-        for (int i = 0; i < fixVersionsArray.length(); i++) {
-            JSONObject fixVersionObj = fixVersionsArray.getJSONObject(i);
+        for (int i = 0; i < fixReleasesArray.length(); i++) {
+            JSONObject fixReleaseObj = fixReleasesArray.getJSONObject(i);
+            String releaseId = fixReleaseObj.getString("id");
 
-            // A volte name è vuoto o null
-            if (fixVersionObj.has("name") && !fixVersionObj.isNull("name")) {
-                String fixVersionName = fixVersionObj.getString("name");
-
-                for (Release release : releases) {
-                    if (release.getName().equals(fixVersionName)) {
-                        return release;
-                    }
-                }
-            }
+            // Using `new ArrayList<>` to create a mutable list
+            ticketFixReleases = new ArrayList<>(Releases.stream().filter(v -> v.getId().equals(releaseId)).toList());
         }
 
-        // Se nessuna corrisponde, torna null
-        return null;
+        if (ticketFixReleases != null && !ticketFixReleases.isEmpty()) {
+            if (ticketFixReleases.size() > 1)
+                ticketFixReleases.sort((v1, v2) -> v2.getReleaseDate().compareTo(v1.getReleaseDate()));
+            fixRelease = ticketFixReleases.get(0);
+        }
+
+        return fixRelease;
     }
 
 
@@ -159,7 +183,7 @@ public class JiraTicketsManager implements TicketsManager {
      * @return the URL with filters set
      */
     private String buildUrlFromFilter(TicketFilter ticketFilter) {
-        StringBuilder url = new StringBuilder(BASE_URL + "search?jql=project=\"" + projectName + "\"");
+        StringBuilder url = new StringBuilder(baseUrl + "search?jql=project=\"" + projectName + "\"");
 
         if (ticketFilter.getStatuses() != null && !ticketFilter.getStatuses().isEmpty()) {
             url.append("AND(");
@@ -177,7 +201,7 @@ public class JiraTicketsManager implements TicketsManager {
             boolean first = true;
             for (TicketType type : ticketFilter.getTypes()) {
                 if (!first) url.append("OR");
-                url.append("\"issuetype\"=\"").append(type).append("\"");
+                url.append("\"issueType\"=\"").append(type).append("\"");
                 first = false;
             }
             url.append(")");
@@ -198,4 +222,5 @@ public class JiraTicketsManager implements TicketsManager {
 
         return url.toString();
     }
+
 }

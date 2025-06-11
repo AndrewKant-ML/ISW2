@@ -1,4 +1,4 @@
-package vcsManagement.model;
+package vcs.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

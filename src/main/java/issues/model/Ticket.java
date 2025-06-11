@@ -1,10 +1,10 @@
-package issueManagement.model;
+package issues.model;
 
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import vcsManagement.model.CommitInfo;
+import vcs.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.List;

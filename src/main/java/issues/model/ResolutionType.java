@@ -1,4 +1,4 @@
-package issueManagement.model;
+package issues.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
