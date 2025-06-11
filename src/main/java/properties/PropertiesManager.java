@@ -8,7 +8,7 @@ import java.util.Properties;
 
 public class PropertiesManager {
 
-    private static final String PROPERTIES_FILE_NAME = "project.properties";
+    private static final String PROPERTIES_FILE_NAME = "info.properties";
 
     private static PropertiesManager instance;
 

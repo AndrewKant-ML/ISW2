@@ -31,10 +31,10 @@ public class JiraReleasesManager{
     private final JSONUtils jsonUtils;
 
     public JiraReleasesManager() {
-        this.projectName = PropertiesManager.getInstance().getProperty("project.name").toUpperCase(Locale.ROOT);
-        String baseUrl = PropertiesManager.getInstance().getProperty("project.jira.baseUrl");
+        this.projectName = PropertiesManager.getInstance().getProperty("info.name").toUpperCase(Locale.ROOT);
+        String baseUrl = PropertiesManager.getInstance().getProperty("info.jira.baseUrl");
 
-        this.url = String.format(baseUrl + "project/%s/Releases", projectName);
+        this.url = String.format(baseUrl + "project/%s/versions", projectName);
 
         this.Releases = new ArrayList<>();
         this.jsonUtils = new JSONUtils();

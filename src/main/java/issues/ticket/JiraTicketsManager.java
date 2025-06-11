@@ -34,8 +34,8 @@ public class JiraTicketsManager{
     private final JiraReleasesManager ReleasesManager;
 
     public JiraTicketsManager() {
-        this.projectName = PropertiesManager.getInstance().getProperty("project.name");
-        this.baseUrl = PropertiesManager.getInstance().getProperty("project.jira.baseUrl");
+        this.projectName = PropertiesManager.getInstance().getProperty("info.name");
+        this.baseUrl = PropertiesManager.getInstance().getProperty("info.jira.baseUrl");
         this.jsonUtils = new JSONUtils();
 
         this.ReleasesManager = new JiraReleasesManager();
@@ -148,7 +148,7 @@ public class JiraTicketsManager{
     }
 
     private Release getFixReleaseFromTicketJson(JSONObject ticketJson) {
-        JSONArray fixReleasesArray = ticketJson.getJSONObject("fields").getJSONArray("fixReleases");
+        JSONArray fixReleasesArray = ticketJson.getJSONObject("fields").getJSONArray("fixVersions");
 
         if (fixReleasesArray == null || fixReleasesArray.isEmpty()) {
             return null;
