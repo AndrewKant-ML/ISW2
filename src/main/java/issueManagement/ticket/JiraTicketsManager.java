@@ -20,7 +20,7 @@ import java.util.Locale;
 @Slf4j
 public class JiraTicketsManager implements TicketsManager {
 
-    private static final String BASE_URL = "https://issues.apache.org/jira/rest/api/2/search";
+    private static final String BASE_URL = "https://issues.apache.org/jira/rest/api/2/";
     private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd'T'HH:mm:ss.SSS").appendOffset("+HHMM", "Z").toFormatter();
     private static final int PAGE_SIZE = 100;
 
@@ -159,13 +159,13 @@ public class JiraTicketsManager implements TicketsManager {
      * @return the URL with filters set
      */
     private String buildUrlFromFilter(TicketFilter ticketFilter) {
-        StringBuilder url = new StringBuilder(BASE_URL + "?jql=project=\"" + projectName + "\"");
+        StringBuilder url = new StringBuilder(BASE_URL + "search?jql=project=\"" + projectName + "\"");
 
         if (ticketFilter.getStatuses() != null && !ticketFilter.getStatuses().isEmpty()) {
-            url.append(" AND (");
+            url.append("AND(");
             boolean first = true;
             for (TicketStatus status : ticketFilter.getStatuses()) {
-                if (!first) url.append(" OR ");
+                if (!first) url.append("OR");
                 url.append("\"status\"=\"").append(status.getStatus()).append("\"");
                 first = false;
             }
@@ -173,22 +173,29 @@ public class JiraTicketsManager implements TicketsManager {
         }
 
         if (ticketFilter.getTypes() != null && !ticketFilter.getTypes().isEmpty()) {
-            url.append(" AND (");
+            url.append("AND(");
             boolean first = true;
             for (TicketType type : ticketFilter.getTypes()) {
-                if (!first) url.append(" OR ");
-                url.append("\"issueType\"=\"").append(type).append("\"");
+                if (!first) url.append("OR");
+                url.append("\"issuetype\"=\"").append(type).append("\"");
                 first = false;
             }
             url.append(")");
         }
 
-        // ⚠️ Fissa sempre questi campi fondamentali per l'analisi
-        url.append("&fields=fixVersions,created,resolutiondate,updated,issuetype,status,assignee,resolution");
+        if (ticketFilter.getResolutions() != null && !ticketFilter.getResolutions().isEmpty()) {
+            url.append("AND(");
+            boolean first = true;
+            for (ResolutionType type : ticketFilter.getResolutions()) {
+                if (!first) url.append("OR");
+                url.append("\"resolution\"=\"").append(type).append("\"");
+                first = false;
+            }
+            url.append(")");
+        }
 
         url.append("&startAt=%d&maxResults=%d");
 
         return url.toString();
     }
-
 }
