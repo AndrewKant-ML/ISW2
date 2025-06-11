@@ -1,4 +1,4 @@
-package properties;
+package it.uniroma2.dicii.properties;
 
 public class PropertyNotFoundException extends Exception {
 

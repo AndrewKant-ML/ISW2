@@ -1,4 +1,4 @@
-package issueManagement.model;
+package it.uniroma2.dicii.issueManagement.model;
 
 import lombok.Data;
 import lombok.NonNull;

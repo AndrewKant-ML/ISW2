@@ -1,4 +1,4 @@
-package issueManagement;
+package it.uniroma2.dicii.issueManagement;
 
 import org.json.JSONArray;
 import org.json.JSONException;

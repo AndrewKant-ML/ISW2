@@ -1,8 +1,8 @@
-package vcsManagement.model;
+package it.uniroma2.dicii.vcsManagement.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import vcsManagement.commit.GitCommitManager;
+import it.uniroma2.dicii.vcsManagement.commit.GitCommitManager;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

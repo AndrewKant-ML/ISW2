@@ -6,9 +6,9 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="it.uniroma2.dicii" level="INFO"/>
+        <Logger name="it.uniroma2.dicii" level="DEBUG"/>
         <!-- Root Logger -->
-        <Root level="INFO">
+        <Root level="WARN">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>

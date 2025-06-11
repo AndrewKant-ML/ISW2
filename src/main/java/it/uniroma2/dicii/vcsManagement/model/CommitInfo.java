@@ -1,4 +1,4 @@
-package vcsManagement.model;
+package it.uniroma2.dicii.vcsManagement.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

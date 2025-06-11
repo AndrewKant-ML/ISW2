@@ -1,7 +1,7 @@
-package vcsManagement.commit;
+package it.uniroma2.dicii.vcsManagement.commit;
 
-import issueManagement.model.*;
-import issueManagement.ticket.TicketsManager;
+import it.uniroma2.dicii.issueManagement.model.*;
+import it.uniroma2.dicii.issueManagement.ticket.TicketsManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
@@ -21,10 +21,9 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
-import properties.PropertiesManager;
-import properties.PropertyNotFoundException;
-import vcsManagement.model.CommitInfo;
-import vcsManagement.model.ModifiedMethod;
+import it.uniroma2.dicii.properties.PropertiesManager;
+import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
+import it.uniroma2.dicii.vcsManagement.model.ModifiedMethod;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,23 +56,18 @@ public class GitCommitManager {
      */
     public GitCommitManager(TicketsManager ticketsManager) throws IOException {
         this.ticketsManager = ticketsManager;
-        try {
-            this.projectName = PropertiesManager.getInstance().getProperty("project.name");
+        this.projectName = PropertiesManager.getInstance().getProperty("project.name");
 
-            // Initialize the repository
-            String repoPath = PropertiesManager.getInstance().getProperty("project.repo.path");
-            FileRepositoryBuilder builder = new FileRepositoryBuilder();
-            repository = builder.setGitDir(new File(repoPath + "/.git")).readEnvironment().findGitDir().build();
+        // Initialize the repository
+        String repoPath = PropertiesManager.getInstance().getProperty("project.repo.path");
+        FileRepositoryBuilder builder = new FileRepositoryBuilder();
+        repository = builder.setGitDir(new File(repoPath + "/.git")).readEnvironment().findGitDir().build();
 
-            git = new Git(repository);
+        git = new Git(repository);
 
-            // Create a regex pattern to find ticket IDs in commit messages
-            // Format is typically PROJECT-123, e.g., "BOOKKEEPER-1234"
-            ticketPattern = Pattern.compile("(" + projectName + "-\\d+)?(#\\d+)?((ISSUE\\s?)?\\d+)?", Pattern.CASE_INSENSITIVE);
-        } catch (PropertyNotFoundException e) {
-            log.error("Error accessing project properties: {}", e.getMessage(), e);
-            throw new IOException(e);
-        }
+        // Create a regex pattern to find ticket IDs in commit messages
+        // Format is typically PROJECT-123, e.g., "BOOKKEEPER-1234"
+        ticketPattern = Pattern.compile("(" + projectName + "-\\d+)?(#\\d+)?((ISSUE\\s?)?\\d+)?", Pattern.CASE_INSENSITIVE);
     }
 
     /**

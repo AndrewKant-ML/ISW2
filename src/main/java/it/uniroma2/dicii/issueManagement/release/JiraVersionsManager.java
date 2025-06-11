@@ -1,13 +1,11 @@
-package issueManagement.release;
+package it.uniroma2.dicii.issueManagement.release;
 
-import issueManagement.JSONUtils;
-import issueManagement.model.Version;
-import lombok.Getter;
+import it.uniroma2.dicii.issueManagement.JSONUtils;
+import it.uniroma2.dicii.issueManagement.model.Version;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import properties.PropertiesManager;
-import properties.PropertyNotFoundException;
+import it.uniroma2.dicii.properties.PropertiesManager;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,48 +17,56 @@ import java.util.List;
 import java.util.Locale;
 
 @Slf4j
-public class JiraReleasesManager implements ReleasesManager {
+public class JiraVersionsManager implements VersionsManager {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    @Getter
     private final String projectName;
-    @Getter
+
     private final String url;
-    @Getter
+
     private final List<Version> versions;
 
     private final JSONUtils jsonUtils;
 
-    public JiraReleasesManager() throws PropertyNotFoundException {
+    public JiraVersionsManager() {
         this.projectName = PropertiesManager.getInstance().getProperty("project.name").toUpperCase(Locale.ROOT);
-        this.url = PropertiesManager.getInstance().getProperty("project.jira.baseUrl") + this.projectName;
+        String baseUrl = PropertiesManager.getInstance().getProperty("project.jira.baseUrl");
+
+        this.url = String.format(baseUrl + "project/%s/versions", projectName);
+
         this.versions = new ArrayList<>();
         this.jsonUtils = new JSONUtils();
+    }
+
+    @Override
+    public List<Version> getVersions() {
+        return this.versions;
     }
 
     /**
      * Retrieves all the releases for the project. Ignores releases with missing dates
      */
-    public void getReleasesInfo() {
-        getReleasesInfo(1.0);
+    @Override
+    public void getVersionsInfo() {
+        getVersionsInfo(1.0);
     }
 
     /**
      * Retrieves the first percentage-% of the releases for the project. Ignores releases with missing dates
      */
-    public void getReleasesInfo(Double percentage) {
-        JSONObject json;
+    @Override
+    public void getVersionsInfo(double percentage) {
+        JSONArray versions;
         try {
-            json = jsonUtils.readJsonFromUrl(url);
+            versions = jsonUtils.readJsonArrayFromUrl(url);
         } catch (IOException e) {
-            System.err.println("Unable to read release info from " + url + ": " + e.getMessage());
+            log.error("Unable to retrieve versions from {} : {}", url, e.getMessage());
             return;
         }
 
         this.versions.clear();
         // Takes the "versions" field from the JSON
-        JSONArray versions = json.getJSONArray("versions");
         int versionsNumber = versions.length();
         int versionsToBeConsidered = (int) Math.ceil(versionsNumber * percentage);
         String name, id;
@@ -70,10 +76,11 @@ public class JiraReleasesManager implements ReleasesManager {
             if (versions.getJSONObject(i).has("releaseDate")) {
                 if (versions.getJSONObject(i).has("name")) name = versions.getJSONObject(i).get("name").toString();
                 if (versions.getJSONObject(i).has("id")) id = versions.getJSONObject(i).get("id").toString();
-                if (versions.getJSONObject(i).has("released")) released = versions.getJSONObject(i).getBoolean("released");
+                if (versions.getJSONObject(i).has("released"))
+                    released = versions.getJSONObject(i).getBoolean("released");
                 this.versions.add(new Version(id, name, LocalDate.parse(versions.getJSONObject(i).getString("releaseDate")), released));
             } else {
-                System.err.println("Version " + versions.getJSONObject(i).getString("name") + " has no release date");
+                log.error("Version {} has no release date", id);
             }
         }
 

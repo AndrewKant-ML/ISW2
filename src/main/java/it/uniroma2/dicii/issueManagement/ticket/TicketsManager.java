@@ -1,7 +1,7 @@
-package issueManagement.ticket;
+package it.uniroma2.dicii.issueManagement.ticket;
 
-import issueManagement.model.Ticket;
-import issueManagement.model.TicketFilter;
+import it.uniroma2.dicii.issueManagement.model.Ticket;
+import it.uniroma2.dicii.issueManagement.model.TicketFilter;
 
 import java.util.List;
 

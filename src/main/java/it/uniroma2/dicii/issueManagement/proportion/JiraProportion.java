@@ -1,8 +1,8 @@
-package issueManagement.proportion;
+package it.uniroma2.dicii.issueManagement.proportion;
 
-import issueManagement.model.Release;
-import issueManagement.model.Ticket;
-import vcsManagement.model.CommitInfo;
+import it.uniroma2.dicii.issueManagement.model.Version;
+import it.uniroma2.dicii.issueManagement.model.Ticket;
+import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -12,17 +12,17 @@ public class JiraProportion {
 
     public static List<Ticket> applyProportion(
             List<Ticket> allTickets,
-            List<Release> allReleases,
+            List<Version> allReleases,
             Map<String, List<CommitInfo>> ticketCommitsMap,
             Map<String, LocalDate> releaseDates
     ) {
         int cutoffIndex = (int) Math.ceil(allReleases.size() * 0.33);
-        List<Release> subsetReleases = allReleases.subList(0, cutoffIndex);
+        List<Version> subsetReleases = allReleases.subList(0, cutoffIndex);
         Set<String> subsetReleaseNames = subsetReleases.stream()
-                .map(Release::getName)
+                .map(Version::getName)
                 .collect(Collectors.toSet());
 
-        Map<Release, Integer> releaseIndexMap = new HashMap<>();
+        Map<Version, Integer> releaseIndexMap = new HashMap<>();
         for (int i = 0; i < allReleases.size(); i++) {
             releaseIndexMap.put(allReleases.get(i), i);
         }
@@ -59,7 +59,7 @@ public class JiraProportion {
                 if (commits != null && !commits.isEmpty()) {
                     String fixVersionName = FixVersionResolver.resolveFixVersion(t.getKey(), commits, releaseDates, false);
                     if (fixVersionName != null && subsetReleaseNames.contains(fixVersionName)) {
-                        Release matchedRelease = subsetReleases.stream()
+                        Version matchedRelease = subsetReleases.stream()
                                 .filter(r -> r.getName().equals(fixVersionName))
                                 .findFirst().orElse(null);
                         if (matchedRelease != null) {
@@ -97,7 +97,7 @@ public class JiraProportion {
         return ticketsNeedingIV;
     }
 
-    private static int getOpeningVersionIndex(Ticket ticket, List<Release> releases) {
+    private static int getOpeningVersionIndex(Ticket ticket, List<Version> releases) {
         for (int i = 0; i < releases.size(); i++) {
             if (releases.get(i).getReleaseDate().isAfter(ticket.getIssueDate())) {
                 return Math.max(0, i - 1);

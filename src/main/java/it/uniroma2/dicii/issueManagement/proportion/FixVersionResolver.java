@@ -1,6 +1,6 @@
-package issueManagement.proportion;
+package it.uniroma2.dicii.issueManagement.proportion;
 
-import vcsManagement.model.CommitInfo;
+import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.List;

@@ -1,10 +1,10 @@
-package issueManagement.model;
+package it.uniroma2.dicii.issueManagement.model;
 
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import vcsManagement.model.CommitInfo;
+import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,8 +38,8 @@ public class Ticket {
 
     private String summary;
 
-    private Release injected;
-    private Release fixed;
+    private Version injected;
+    private Version fixed;
 
     @Setter
     private List<CommitInfo> associatedCommits;
