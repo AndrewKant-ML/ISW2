@@ -2,16 +2,18 @@ package vcsManagement;
 
 import issueManagement.model.Ticket;
 import issueManagement.model.TicketFilter;
+import issueManagement.model.TicketStatus;
+import issueManagement.model.TicketType;
 import issueManagement.ticket.JiraTicketsManager;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import issueManagement.ticket.TicketsManager;
+import lombok.extern.slf4j.Slf4j;
+import properties.PropertyNotFoundException;
 import vcsManagement.commit.GitCommitManager;
-import vcsManagement.model.CommitInfo;
-import vcsManagement.model.ModifiedMethod;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 public class CommitTicketExample {
 
     /* 40ac04b
@@ -21,59 +23,63 @@ public class CommitTicketExample {
      */
 
 
-    public static void main(String[] args) {
-        extracted();
+    public static void main(String[] args) throws PropertyNotFoundException, IOException {
 
-        f();
+        String projectName = "BOOKKEEPER";  // Example: Apache HBase project
+        String repoPath = "/home/cantarell/IdeaProjects/bookkeeper";
+
+        List<Ticket> tickets = extractTicketsWithCommits(projectName, repoPath);
+        tickets.stream()
+                .filter(t -> t.getAssociatedCommits()==null)
+                .forEach(System.out::println);
+
+        //f();
     }
 
-    private static void extracted() {
-        try {
-            // Define the project and repository path
-            String projectName = "BOOKKEEPER";  // Example: Apache HBase project
-            String repoPath = "/Users/iacov/Documents/ISW2_Metrics_Proj_backup/workspace/projects/bookkeeper";
-
-
-            // Initialize the Git commit manager
-            GitCommitManager gitManager = new GitCommitManager(repoPath, projectName);
-
-            // Get tickets from Jira
-            JiraTicketsManager ticketsManager = new JiraTicketsManager(projectName);
-
-            // Set up a filter to get only FIXED bugs
-            TicketFilter filter = new TicketFilter();
-
-            List<Ticket> tickets = extractTicketsWithCommits(projectName, repoPath, filter);
-            for (Ticket ticket : tickets) {
-                System.out.println(ticket.getKey() + " - " + ticket.getStatus());
-                if (ticket.getAssociatedCommits() != null)
-                    for (CommitInfo commit : ticket.getAssociatedCommits()) {
-                        System.out.println("  - " + commit.getCommitId().substring(0, 7) + " (" + commit.getCommitDate() + ") by " + commit.getAuthorName() + ": " + commit.getMessage().split("\n")[0]);
-                    }
-                System.out.println();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    private static void extracted() {
+//        try {
+//            // Define the project and repository path
+//            String projectName = "BOOKKEEPER";  // Example: Apache HBase project
+//            String repoPath = "/home/cantarell/IdeaProjects/bookkeeper";
+//
+//            // Initialize the Git commit manager
+//            GitCommitManager gitManager = new GitCommitManager();
+//
+//            // Get tickets from Jira
+//            JiraTicketsManager ticketsManager = new JiraTicketsManager(projectName);
+//
+//            // Set up a filter to get only FIXED bugs
+//            TicketFilter filter = new TicketFilter();
+//
+//            List<Ticket> tickets = extractTicketsWithCommits(projectName, repoPath, filter);
+//            for (Ticket ticket : tickets) {
+//                System.out.println(ticket.getKey() + " - " + ticket.getStatus());
+//                if (ticket.getAssociatedCommits() != null) for (CommitInfo commit : ticket.getAssociatedCommits()) {
+//                    System.out.println("  - " + commit.getCommitId().substring(0, 7) + " (" + commit.getCommitDate() + ") by " + commit.getAuthorName() + ": " + commit.getMessage().split("\n")[0]);
+//                }
+//                System.out.println();
+//            }
+//        } catch (IOException | PropertyNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public static void f() {
         // Get modified methods for a specific commit
         String commitId = "a788614"; // Replace with actual commit hash
-        try {
-            String projectName = "BOOKKEEPER";  // Example: Apache HBase project
-            String repoPath = "/home/cantarell/IdeaProjects/bookkeeper";
+        String projectName = "BOOKKEEPER";  // Example: Apache HBase project
+        String repoPath = "/home/cantarell/IdeaProjects/bookkeeper";
 
-            // Initialize the Git commit manager
-            GitCommitManager gitManager = new GitCommitManager(repoPath, projectName);
-            List<ModifiedMethod> methods = gitManager.getModifiedJavaMethods(commitId);
-            System.out.println("Modified methods in commit " + commitId + ":");
-            String filePath;
-            for (ModifiedMethod method : methods) {
-                filePath = method.getFilePath();
-                System.out.println(method.getMethodCode());
-                //System.out.println(" - " + method.getModificationType() + ": " + filePath.substring(0, filePath.lastIndexOf(".")) + "." + method.getMethodName());
-            }
+        // Initialize the Git commit manager
+//            GitCommitManager gitManager = new GitCommitManager();
+//            List<ModifiedMethod> methods = gitManager.getModifiedJavaMethods(commitId);
+//            System.out.println("Modified methods in commit " + commitId + ":");
+//            String filePath;
+//            for (ModifiedMethod method : methods) {
+//                filePath = method.getFilePath();
+//                System.out.println(method.getMethodCode());
+//                //System.out.println(" - " + method.getModificationType() + ": " + filePath.substring(0, filePath.lastIndexOf(".")) + "." + method.getMethodName());
+//            }
 
 //            Map<String, List<GitCommitManager.ModifiedMethod>> allModifications = gitManager.getAllCommitsModifiedMethods();
 //            System.out.println("Total commits with Java method modifications: " + allModifications.size());
@@ -84,51 +90,34 @@ public class CommitTicketExample {
 //
 //                System.out.println("Commit " + commitId.substring(0, 7) + ": " + methods.size() + " method changes");
 //            }
-        } catch (IOException | GitAPIException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
      * Extracts all project tickets and their associated commits, then populates the commits field in each Ticket entity.
-     * 
+     *
      * @param projectName the name of the project (e.g., "BOOKKEEPER")
-     * @param repoPath the local path to the Git repository
-     * @param filter optional ticket filter to narrow down ticket selection
+     * @param repoPath    the local path to the Git repository
      * @return List of Ticket entities with populated commit information
      * @throws IOException if there's an issue accessing the repository
      */
-    public static List<Ticket> extractTicketsWithCommits(String projectName, String repoPath, TicketFilter filter) throws IOException {
-        // Initialize managers
-        GitCommitManager gitManager = new GitCommitManager(repoPath, projectName);
-        JiraTicketsManager ticketsManager = new JiraTicketsManager(projectName);
-        
+    public static List<Ticket> extractTicketsWithCommits(String projectName, String repoPath) throws IOException, PropertyNotFoundException {
+        GitCommitManager gitManager = null;
         try {
-            // Apply filter if provided, otherwise use default filter
-            if (filter == null) {
-                filter = new TicketFilter();
-            }
-            
-            // Retrieve tickets based on filter
-            ticketsManager.retrieveTicketsIDs(filter);
-            List<Ticket> tickets = ticketsManager.getTickets();
-            
+            TicketsManager ticketsManager = new JiraTicketsManager(projectName);
+            gitManager = new GitCommitManager(ticketsManager);
+
             // Associate commits with tickets
-            Map<Ticket, List<CommitInfo>> ticketCommitsMap = gitManager.associateCommitsWithTickets(tickets);
-            
-            // Store commits in each Ticket entity
-            for (Map.Entry<Ticket, List<CommitInfo>> entry : ticketCommitsMap.entrySet()) {
-                Ticket ticket = entry.getKey();
-                List<CommitInfo> commits = entry.getValue();
-                
-                // Assuming Ticket class has a setCommits method or similar
-                ticket.setAssociatedCommits(commits);
-            }
-            
-            return tickets;
+            gitManager.getCommitsWithTickets();
+
+            ticketsManager.setFixVersionToTickets();
+
+            return ticketsManager.getTickets();
+        } catch (Exception e) {
+            log.error("Error while extracting tickets with commits: {}", e.getMessage(), e);
         } finally {
             // Ensure resources are closed properly
             gitManager.close();
         }
+        return null;
     }
 }

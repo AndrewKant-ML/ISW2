@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Data
 @RequiredArgsConstructor
-public class Release {
+public class Version {
 
     @NonNull
     private String id;
@@ -18,5 +18,8 @@ public class Release {
 
     @NonNull
     private LocalDate releaseDate;
+
+    @NonNull
+    private Boolean released;
 
 }
