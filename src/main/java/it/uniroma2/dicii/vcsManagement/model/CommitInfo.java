@@ -1,16 +1,11 @@
 package it.uniroma2.dicii.vcsManagement.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.time.LocalDate;
 
-@Getter
-@AllArgsConstructor
-public class CommitInfo {
-    private final String commitId;
-    private final String authorName;
-    private final String authorEmail;
-    private final LocalDate commitDate;
-    private final String message;
+public record CommitInfo(String commitId, String authorName, String authorEmail, LocalDate commitDate, String message) {
+
+    @Override
+    public String toString() {
+        return String.format("%s: %s", commitId, message);
+    }
 }

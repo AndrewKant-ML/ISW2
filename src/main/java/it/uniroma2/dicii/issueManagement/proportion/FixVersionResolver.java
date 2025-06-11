@@ -31,7 +31,7 @@ public class FixVersionResolver {
 
         // Trova la data più recente del commit
         LocalDate latestCommitDate = commits.stream()
-                .map(CommitInfo::getCommitDate)
+                .map(CommitInfo::commitDate)
                 .max(LocalDate::compareTo)
                 .orElse(null);
 

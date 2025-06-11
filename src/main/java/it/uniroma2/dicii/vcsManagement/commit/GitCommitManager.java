@@ -2,6 +2,9 @@ package it.uniroma2.dicii.vcsManagement.commit;
 
 import it.uniroma2.dicii.issueManagement.model.*;
 import it.uniroma2.dicii.issueManagement.ticket.TicketsManager;
+import it.uniroma2.dicii.properties.PropertiesManager;
+import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
+import it.uniroma2.dicii.vcsManagement.model.ModifiedMethod;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
@@ -21,9 +24,6 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
-import it.uniroma2.dicii.properties.PropertiesManager;
-import it.uniroma2.dicii.vcsManagement.model.CommitInfo;
-import it.uniroma2.dicii.vcsManagement.model.ModifiedMethod;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +67,7 @@ public class GitCommitManager {
 
         // Create a regex pattern to find ticket IDs in commit messages
         // Format is typically PROJECT-123, e.g., "BOOKKEEPER-1234"
-        ticketPattern = Pattern.compile("(" + projectName + "-\\d+)?(#\\d+)?((ISSUE\\s?)?\\d+)?", Pattern.CASE_INSENSITIVE);
+        ticketPattern = Pattern.compile("(" + projectName + "-\\d+)|(ISSUE\\s\\d+)|(#\\d+)", Pattern.CASE_INSENSITIVE);
     }
 
     /**
@@ -93,6 +93,9 @@ public class GitCommitManager {
                 String commitMessage = commit.getFullMessage();
                 List<String> ticketIds = extractTicketIds(commitMessage);
 
+                if (ticketIds.isEmpty())
+                    log.warn("No ticket IDs found in commit {}. Message: {}", commit.getId(), commitMessage);
+
                 CommitInfo commitInfo = new CommitInfo(commit.getName(), commit.getAuthorIdent().getName(), commit.getAuthorIdent().getEmailAddress(), LocalDate.ofInstant(Instant.ofEpochSecond(commit.getCommitTime()), ZoneId.systemDefault()), commitMessage);
 
                 // For each ticket ID found in the commit message
@@ -108,6 +111,7 @@ public class GitCommitManager {
                             break;
                         }
                     }
+                    log.warn("No ticket found matching any of the following patterns: {}", ticketIds);
                 }
             }
         } catch (GitAPIException e) {
@@ -243,7 +247,7 @@ public class GitCommitManager {
                         Map<String, String> oldMethods = extractJavaMethodsWithSignatures(oldContent);
                         Map<String, String> newMethods = extractJavaMethodsWithSignatures(newContent);
 
-                        // Methods in old file but not in new file were deleted
+                        // Methods in an old file but not in the new file were deleted
                         for (Map.Entry<String, String> entry : oldMethods.entrySet()) {
                             if (!newMethods.containsKey(entry.getKey())) {
                                 modifiedMethods.add(new ModifiedMethod(diff.getOldPath(), entry.getValue(), ModificationType.DELETED));
@@ -327,7 +331,7 @@ public class GitCommitManager {
         Map<String, String> methodMap = new HashMap<>();
 
         // Pattern to match method signatures
-        Pattern methodPattern = Pattern.compile("(?:public|protected|private|static|\\s) +(?:[\\w\\<\\>\\[\\]]+\\s+)+(\\w+) *\\([^\\)]*\\) *(\\{?|[^;])");
+        Pattern methodPattern = Pattern.compile("(?:public|protected|private|static|\\s) +(?:[\\w<>\\[\\]]+\\s+)+(\\w+) *\\([^)]*\\) *(\\{?|[^;])");
 
         Matcher matcher = methodPattern.matcher(javaContent);
 

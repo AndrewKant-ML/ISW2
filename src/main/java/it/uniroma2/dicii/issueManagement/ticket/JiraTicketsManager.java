@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import it.uniroma2.dicii.properties.PropertiesManager;
-import it.uniroma2.dicii.properties.PropertyNotFoundException;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -38,8 +37,6 @@ public class JiraTicketsManager implements TicketsManager {
         this.projectName = PropertiesManager.getInstance().getProperty("project.name");
         this.baseUrl = PropertiesManager.getInstance().getProperty("project.jira.baseUrl");
         this.jsonUtils = new JSONUtils();
-
-        log.debug("Base URL: {}", baseUrl);
 
         this.versionsManager = new JiraVersionsManager();
         versionsManager.getVersionsInfo();
@@ -114,8 +111,8 @@ public class JiraTicketsManager implements TicketsManager {
 
         for (Ticket ticket : ticketsWithNoFixVersion) {
             if (ticket.getAssociatedCommits()!=null && !ticket.getAssociatedCommits().isEmpty()) {
-                ticket.getAssociatedCommits().sort((c1, c2) -> c2.getCommitDate().compareTo(c1.getCommitDate()));
-                LocalDate lastCommitDate = ticket.getAssociatedCommits().get(ticket.getAssociatedCommits().size()-1).getCommitDate();
+                ticket.getAssociatedCommits().sort((c1, c2) -> c2.commitDate().compareTo(c1.commitDate()));
+                LocalDate lastCommitDate = ticket.getAssociatedCommits().get(ticket.getAssociatedCommits().size()-1).commitDate();
                 availableVersions.stream().filter(v -> v.getReleaseDate().isAfter(lastCommitDate)).findFirst().ifPresent(ticket::setFixed);
             } else
                 log.warn("Ticket {} has no associated commits", ticket.getKey());
