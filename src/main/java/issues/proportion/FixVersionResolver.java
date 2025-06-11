@@ -16,12 +16,7 @@ public class FixVersionResolver {
      * Risolve la Fix Version come nome release.
      * Stampa SOLO i ticket che non avevano già FV e a cui è stata stimata.
      *
-     * @param ticketKey
-     * @param commits
-     * @param releaseDates
-     * @param ticketHadFixed se != null, indica se il ticket aveva già FV (controllato dal chiamante)
-     * @return releaseName stimata o null
-     */
+     **/
     public static String resolveFixVersion(String ticketKey,
                                            List<? extends CommitInfo> commits,
                                            Map<String, LocalDate> releaseDates,

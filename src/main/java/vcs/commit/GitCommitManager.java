@@ -56,10 +56,10 @@ public class GitCommitManager {
      */
     public GitCommitManager(JiraTicketsManager ticketsManager) throws IOException {
         this.ticketsManager = ticketsManager;
-        this.projectName = PropertiesManager.getInstance().getProperty("project.name");
+        this.projectName = PropertiesManager.getInstance().getProperty("info.name");
 
         // Initialize the repository
-        String repoPath = PropertiesManager.getInstance().getProperty("project.repo.path");
+        String repoPath = PropertiesManager.getInstance().getProperty("info.repo.path");
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         repository = builder.setGitDir(new File(repoPath + "/.git")).readEnvironment().findGitDir().build();
 
