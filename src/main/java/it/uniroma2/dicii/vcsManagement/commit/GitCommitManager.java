@@ -46,7 +46,9 @@ public class GitCommitManager {
 
     private final Repository repository;
     private final Git git;
-    private final Pattern ticketPattern;
+    private final Pattern ticketPatternWithProjectName;
+    private final Pattern ticketPatternWithIssue;
+    private final Pattern ticketPatternWithHashtag;
     private final TicketsManager ticketsManager;
 
     /**
@@ -65,9 +67,10 @@ public class GitCommitManager {
 
         git = new Git(repository);
 
-        // Create a regex pattern to find ticket IDs in commit messages
-        // Format is typically PROJECT-123, e.g., "BOOKKEEPER-1234"
-        ticketPattern = Pattern.compile("(" + projectName + "-\\d+)|(ISSUE\\s\\d+)|(#\\d+)", Pattern.CASE_INSENSITIVE);
+        this.ticketPatternWithProjectName = Pattern.compile("(" + projectName + "-\\d+)");
+        this.ticketPatternWithIssue = Pattern.compile("(ISSUE\\s\\d+)");
+        this.ticketPatternWithHashtag = Pattern.compile("(#\\d+)");
+
     }
 
     /**
@@ -94,15 +97,25 @@ public class GitCommitManager {
                 List<String> ticketIds = extractTicketIds(commitMessage);
 
                 if (ticketIds.isEmpty())
-                    log.warn("No ticket IDs found in commit {}. Message: {}", commit.getId(), commitMessage);
+                    log.debug("No ticket IDs found in commit {}. Message: {}", commit.getId(), commitMessage);
 
                 CommitInfo commitInfo = new CommitInfo(commit.getName(), commit.getAuthorIdent().getName(), commit.getAuthorIdent().getEmailAddress(), LocalDate.ofInstant(Instant.ofEpochSecond(commit.getCommitTime()), ZoneId.systemDefault()), commitMessage);
 
                 // For each ticket ID found in the commit message
+                String finalTicketId;
                 for (String ticketId : ticketIds) {
+                    finalTicketId = ticketId;
+                    if (ticketPatternWithIssue.matcher(ticketId).matches()) {
+                        finalTicketId = ticketId.replace("ISSUE ", projectName.toUpperCase() + "-").trim();
+                    }
+
+                    if (ticketPatternWithHashtag.matcher(ticketId).matches()) {
+                        finalTicketId = ticketId.replace("#", projectName.toUpperCase() + "-").trim();
+                    }
+
                     // Check if any ticket in the ticket list has a matching key
                     for (Ticket ticket : tickets) {
-                        if (ticketId.equalsIgnoreCase(ticket.getKey())) {
+                        if (ticket.getId().equalsIgnoreCase(finalTicketId)) {
                             if (ticket.getAssociatedCommits() == null) {
                                 ticket.setAssociatedCommits(new ArrayList<>(List.of(commitInfo)));
                             } else {
@@ -111,7 +124,7 @@ public class GitCommitManager {
                             break;
                         }
                     }
-                    log.warn("No ticket found matching any of the following patterns: {}", ticketIds);
+                    log.warn("No ticket found matching any of the following patterns: {}", finalTicketId);
                 }
             }
         } catch (GitAPIException e) {
@@ -127,9 +140,15 @@ public class GitCommitManager {
      */
     private List<String> extractTicketIds(String commitMessage) {
         List<String> ticketIds = new ArrayList<>();
-        // Using the uppercase commit message to count all occurrences of the ticket IDs
-        Matcher matcher = ticketPattern.matcher(commitMessage.toUpperCase());
 
+        // Using the uppercase commit message to count all occurrences of the ticket IDs
+        Matcher matcher = ticketPatternWithProjectName.matcher(commitMessage.toUpperCase());
+        while (matcher.find()) if (!ticketIds.contains(matcher.group())) ticketIds.add(matcher.group());
+
+        matcher = ticketPatternWithIssue.matcher(commitMessage.toUpperCase());
+        while (matcher.find()) if (!ticketIds.contains(matcher.group())) ticketIds.add(matcher.group());
+
+        matcher = ticketPatternWithHashtag.matcher(commitMessage.toUpperCase());
         while (matcher.find()) if (!ticketIds.contains(matcher.group())) ticketIds.add(matcher.group());
 
         return ticketIds;

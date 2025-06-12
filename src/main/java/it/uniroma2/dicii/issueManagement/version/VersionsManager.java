@@ -1,4 +1,4 @@
-package it.uniroma2.dicii.issueManagement.release;
+package it.uniroma2.dicii.issueManagement.version;
 
 import it.uniroma2.dicii.issueManagement.model.Version;
 

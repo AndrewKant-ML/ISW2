@@ -1,10 +1,9 @@
-package it.uniroma2.dicii.issueManagement.release;
+package it.uniroma2.dicii.issueManagement.version;
 
 import it.uniroma2.dicii.issueManagement.JSONUtils;
 import it.uniroma2.dicii.issueManagement.model.Version;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
-import org.json.JSONObject;
 import it.uniroma2.dicii.properties.PropertiesManager;
 
 import java.io.FileWriter;

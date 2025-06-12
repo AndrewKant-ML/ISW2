@@ -2,7 +2,7 @@ package it.uniroma2.dicii.issueManagement.ticket;
 
 import it.uniroma2.dicii.issueManagement.JSONUtils;
 import it.uniroma2.dicii.issueManagement.model.*;
-import it.uniroma2.dicii.issueManagement.release.JiraVersionsManager;
+import it.uniroma2.dicii.issueManagement.version.JiraVersionsManager;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
