@@ -1,7 +1,7 @@
 package vcs.commit;
 
-import issues.model.*;
 import issues.ticket.JiraTicketsManager;
+import issues.model.*;
 import properties.PropertiesManager;
 import vcs.model.CommitInfo;
 import vcs.model.ModifiedMethod;
