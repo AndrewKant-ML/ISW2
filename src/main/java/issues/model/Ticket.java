@@ -1,9 +1,6 @@
 package issues.model;
 
-import lombok.Data;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import vcs.model.CommitInfo;
 
 import java.time.LocalDate;
@@ -20,6 +17,7 @@ public class Ticket {
     private final String key;
 
     @NonNull
+    @Getter
     private final LocalDate issueDate;
 
     @NonNull

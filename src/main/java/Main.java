@@ -1,3 +1,5 @@
+import issues.model.Ticket;
+import issues.proportion.Proportion;
 import issues.ticket.JiraTicketsManager;
 import issues.model.TicketFilter;
 import issues.model.TicketStatus;
@@ -24,6 +26,18 @@ public class Main {
         ticketManager.retrieveTickets(ticketFilter);
 
         log.info("Retrieved {} tickets for project {}", ticketManager.getTickets().size(), PROJECT_NAME);
+
+        List<Ticket> tickets = ticketManager.getTickets();
+
+        List<Ticket> completeTickets = Proportion.getCompleteTickets(tickets);
+
+        System.out.println("Trovati " + completeTickets.size() + " ticket completi:");
+        for (Ticket ticket : completeTickets) {
+            System.out.printf("Ticket %s → FV: %s → #Commits: %d%n",
+                    ticket.getKey(),
+                    ticket.getFixed().getName(),
+                    ticket.getAssociatedCommits().size());
+        }
 
     }
 }

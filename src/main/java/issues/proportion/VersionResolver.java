@@ -6,9 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-public class FixVersionResolver {
+public class VersionResolver {
 
-    private FixVersionResolver() {
+    private VersionResolver() {
         // Prevent instantiation
     }
 
@@ -30,8 +30,6 @@ public class FixVersionResolver {
                 .max(LocalDate::compareTo)
                 .orElse(null);
 
-        if (latestCommitDate == null) return null;
-
         // Trova la release più vecchia con releaseDate >= latestCommitDate
         for (Map.Entry<String, LocalDate> entry : releaseDates.entrySet()) {
             if (!entry.getValue().isBefore(latestCommitDate)) {
@@ -48,4 +46,33 @@ public class FixVersionResolver {
         // Nessuna release trovata → opzionale: se vuoi puoi loggare i falliti
         return null;
     }
+
+    public static String resolveOpeningVersion(String ticketKey,
+                                               LocalDate ticketIssuedDate,
+                                               Map<String, LocalDate> releaseDates) {
+
+        // Trova la release più recente con releaseDate <= ticketIssuedDate
+        String openingVersion = null;
+        LocalDate latestReleaseDate = null;
+
+        for (Map.Entry<String, LocalDate> entry : releaseDates.entrySet()) {
+            LocalDate releaseDate = entry.getValue();
+
+            if (!releaseDate.isAfter(ticketIssuedDate)) {
+                if (latestReleaseDate == null || releaseDate.isAfter(latestReleaseDate)) {
+                    latestReleaseDate = releaseDate;
+                    openingVersion = entry.getKey();
+                }
+            }
+        }
+
+        if (openingVersion != null) {
+            System.out.printf("[OV CALCOLATA] Ticket %s → OV: %s%n", ticketKey, openingVersion);
+        } else {
+            System.out.printf("[OV NON TROVATA] Ticket %s → Nessuna release <= %s%n", ticketKey, ticketIssuedDate);
+        }
+
+        return openingVersion;
+    }
+
 }
